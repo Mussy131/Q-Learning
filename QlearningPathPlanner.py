@@ -21,7 +21,7 @@ class QLearningPlanner:
             return np.random.randint(len(ACTIONS))
         return np.argmax(self.q_table[state])
 
-    def train(self, start, goal):
+    def train(self, start, goal, reward_function=None):
         eps_min = 0.05
         eps_decay = 0.995
         self.reward_history = []
@@ -34,15 +34,20 @@ class QLearningPlanner:
             for _ in range(self.maxSteps):
                 action_idx = self.choose_action(state)
                 next_state = getNextState(state, ACTIONS[action_idx])
-                r = reward_fn(next_state, goal, self.map, last_state)
+
+                if reward_function:
+                    r = reward_function(next_state, goal, self.map, last_state)
+                else:
+                    from utils import reward_fn
+                    r = reward_fn(next_state, goal, self.map, last_state)
+
                 total_reward += r
 
                 self._init_q(next_state)
-                self.q_table[state][action_idx] += self.alpha * (r + self.gamma * np.max(self.q_table[next_state]) - self.q_table[state][action_idx])
+                self.q_table[state][action_idx] += self.alpha * (
+                    r + self.gamma * np.max(self.q_table[next_state]) - self.q_table[state][action_idx])
 
-                if next_state == goal:
-                    break
-                if not isValid(next_state, self.map):
+                if next_state == goal or not isValid(next_state, self.map):
                     break
 
                 last_state = state

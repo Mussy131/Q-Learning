@@ -9,86 +9,17 @@ from sklearn.model_selection import KFold
 from utils import loadPTSample, isValid
 from QlearningPathPlanner import QLearningPlanner, crop_map_around_start_goal
 from visualize import plotMapWithPath, plot_q_value_heatmap, save_path_animation, plot_kfold_success_bar
+from extendedMainPatch import extended_evaluation
 
 # === Parameters ===
-TEST_FOLDER = "data/test"
-SAVE_FOLDER = "test3"
+TEST_FOLDER = "../data/test"
+SAVE_FOLDER = "test2"
+COMPARE_FOLDER = "comparison_results_ablation"
 NUM_SAMPLES = 10
 EPISODES = 5000
 MAX_STEPS = 500
 MARGIN = 20
 K_Fold = 5
-
-# Create save directory if not exists
-os.makedirs(SAVE_FOLDER, exist_ok=True)
-
-# Get all test files
-all_files = glob.glob(os.path.join(TEST_FOLDER, "*.pt"))
-original_file_list = all_files.copy()
-random.shuffle(all_files)
-
-plot_id = 1
-valid_samples = 0
-
-print(f"Testing {NUM_SAMPLES} maps...")
-
-while valid_samples < NUM_SAMPLES:
-    if not all_files:
-        print("No more files to load!")
-        break
-
-    file_path = all_files.pop()
-    try:
-        mapArray, start, goal = loadPTSample(file_path)
-    except Exception as e:
-        print(f"[Error] Failed to load file: {file_path} - {str(e)}")
-        continue
-
-    filename = os.path.splitext(os.path.basename(file_path))[0]
-
-    if not (isValid(start, mapArray) and isValid(goal, mapArray)):
-        print(f"[Warning] Start or goal is in obstacle: {filename}")
-        fig = plotMapWithPath(mapArray, start, goal, path=None)
-        plt.show()
-        plt.close(fig)
-        continue  # 跳过并自动roll下一张
-
-    tile_map, start_crop, goal_crop = crop_map_around_start_goal(mapArray, start, goal, margin=MARGIN)
-
-    planner = QLearningPlanner(tile_map, episodes=EPISODES, maxSteps=MAX_STEPS)
-    planner.train(start_crop, goal_crop)
-    path = planner.extractPath(start_crop, goal_crop)
-
-    # Path Planning Result
-    if path:
-        print(f"[Info] Path found. Length: {len(path)}")
-    else:
-        print(f"[Info] No path found.")
-
-    # Save visualizations
-    id_str = f"{plot_id:03d}"
-    fig1 = plotMapWithPath(tile_map, start_crop, goal_crop, path)
-    fig1.savefig(os.path.join(SAVE_FOLDER, f"{id_str}_path.png"))
-    plt.close(fig1)
-
-    fig2 = plot_q_value_heatmap(planner.q_table, tile_map, title="Q-table Heatmap")
-    fig2.savefig(os.path.join(SAVE_FOLDER, f"{id_str}_heatmap.png"))
-    plt.close(fig2)
-
-    plt.plot(planner.reward_history)
-    plt.xlabel("Episode")
-    plt.ylabel("Total Reward")
-    plt.title(f"Reward over Episodes: {filename}")
-    plt.grid(True)
-    plt.savefig(os.path.join(SAVE_FOLDER, f"{id_str}_reward.png"))
-    plt.close()
-
-    if path:
-        save_path_animation(tile_map, start_crop, goal_crop, path, save_path=os.path.join(SAVE_FOLDER, f"{id_str}_path.gif"))
-
-    plot_id += 1
-    valid_samples += 1
-
 
 # === K-Fold Evaluation ===
 def evaluate_with_kfold(pt_files, k=5, test_size=100, episodes=5000, max_steps=300):
@@ -166,4 +97,88 @@ def evaluate_with_kfold(pt_files, k=5, test_size=100, episodes=5000, max_steps=3
         print(f"Fold {i+1}: {r:.2%}")
     print(f"Average success rate: {np.mean(fold_results):.2%}")
 
-evaluate_with_kfold(original_file_list, k=K_Fold)
+# === Main Execution ===
+
+# Create save directory if not exists
+# os.makedirs(SAVE_FOLDER, exist_ok=True)
+os.makedirs(COMPARE_FOLDER, exist_ok=True)
+
+# Get all test files
+print(f"Loading test files from {TEST_FOLDER}...")
+all_files = glob.glob(os.path.join(TEST_FOLDER, "*.pt"))
+original_file_list = all_files.copy()
+random.shuffle(all_files)
+
+# plot_id = 1
+# valid_samples = 0
+
+# print(f"Testing {NUM_SAMPLES} maps...")
+
+# while valid_samples < NUM_SAMPLES:
+#     if not all_files:
+#         print("No more files to load!")
+#         break
+
+#     file_path = all_files.pop()
+#     try:
+#         mapArray, start, goal = loadPTSample(file_path)
+#     except Exception as e:
+#         print(f"[Error] Failed to load file: {file_path} - {str(e)}")
+#         continue
+
+#     filename = os.path.splitext(os.path.basename(file_path))[0]
+
+#     if not (isValid(start, mapArray) and isValid(goal, mapArray)):
+#         print(f"[Warning] Start or goal is in obstacle: {filename}")
+#         fig = plotMapWithPath(mapArray, start, goal, path=None)
+#         plt.show()
+#         plt.close(fig)
+#         continue  # 跳过并自动roll下一张
+
+#     tile_map, start_crop, goal_crop = crop_map_around_start_goal(mapArray, start, goal, margin=MARGIN)
+
+#     planner = QLearningPlanner(tile_map, episodes=EPISODES, maxSteps=MAX_STEPS)
+#     planner.train(start_crop, goal_crop)
+#     path = planner.extractPath(start_crop, goal_crop)
+
+#     # Path Planning Result
+#     if path:
+#         print(f"[Info] Path found. Length: {len(path)}")
+#     else:
+#         print(f"[Info] No path found.")
+
+#     # Save visualizations
+#     id_str = f"{plot_id:03d}"
+#     fig1 = plotMapWithPath(tile_map, start_crop, goal_crop, path)
+#     fig1.savefig(os.path.join(SAVE_FOLDER, f"{id_str}_path.png"))
+#     plt.close(fig1)
+
+#     fig2 = plot_q_value_heatmap(planner.q_table, tile_map, title="Q-table Heatmap")
+#     fig2.savefig(os.path.join(SAVE_FOLDER, f"{id_str}_heatmap.png"))
+#     plt.close(fig2)
+
+#     plt.plot(planner.reward_history)
+#     plt.xlabel("Episode")
+#     plt.ylabel("Total Reward")
+#     plt.title(f"Reward over Episodes: {filename}")
+#     plt.grid(True)
+#     plt.savefig(os.path.join(SAVE_FOLDER, f"{id_str}_reward.png"))
+#     plt.close()
+
+#     if path:
+#         save_path_animation(tile_map, start_crop, goal_crop, path, save_path=os.path.join(SAVE_FOLDER, f"{id_str}_path.gif"))
+
+#     plot_id += 1
+#     valid_samples += 1
+
+# === K-Fold Evaluation ===
+# evaluate_with_kfold(original_file_list, k=K_Fold)
+
+# === Path Comparison Evaluation ===
+print("\nRunning Q-Learning vs A* Comparison...")
+
+# Reward Shaping
+extended_evaluation(original_file_list[:30], COMPARE_FOLDER, QLearningPlanner, reward_mode="default")
+
+# Ablation Study(No Reward Shaping)
+# extended_evaluation(original_file_list[:30], COMPARE_FOLDER, QLearningPlanner, reward_mode="ablation")

@@ -8,7 +8,7 @@ import sys, types
 sys.modules['dataset'] = types.ModuleType('dataset')
 sys.modules['dataset.map_sample'] = types.ModuleType('map_sample')
 
-# 定义一个类，用于兼容反序列化
+# Define a fake MapSample class to avoid import errors
 class MapSample:
     def __init__(self):
         pass
@@ -24,7 +24,7 @@ class MapSample:
 
 sys.modules['dataset.map_sample'].__dict__['MapSample'] = MapSample
 
-# unleash torch warnings
+# Unleash torch warnings
 warnings.filterwarnings("ignore", message="You are using `torch.load` with `weights_only=False`")
 
 # QLB8a (8 directions) action space
@@ -42,7 +42,7 @@ def getNextState(state, action):
     return (state[0] + action[0], state[1] + action[1])
 
 
-# 奖励函数
+# Reward function for the environment
 # def reward_fn(state, goal, map_array, last_state=None):
 #     if not isValid(state, map_array):
 #         return -20
@@ -84,7 +84,7 @@ def reward_fn(state, goal, map_array, last_state=None):
     return reward
 
 def loadPTSample(filepath):
-    data = torch.load(filepath, map_location='cpu')
+    data = torch.load(filepath, map_location='cpu', weights_only=False)
 
     try:
         mapArray = data.map.numpy() # change map to numpy array
