@@ -100,7 +100,7 @@ def evaluate_with_kfold(pt_files, k=5, test_size=100, episodes=5000, max_steps=3
 # === Main Execution ===
 
 # Create save directory if not exists
-# os.makedirs(SAVE_FOLDER, exist_ok=True)
+os.makedirs(SAVE_FOLDER, exist_ok=True)
 os.makedirs(COMPARE_FOLDER, exist_ok=True)
 
 # Get all test files
@@ -109,70 +109,70 @@ all_files = glob.glob(os.path.join(TEST_FOLDER, "*.pt"))
 original_file_list = all_files.copy()
 random.shuffle(all_files)
 
-# plot_id = 1
-# valid_samples = 0
+plot_id = 1
+valid_samples = 0
 
-# print(f"Testing {NUM_SAMPLES} maps...")
+print(f"Testing {NUM_SAMPLES} maps...")
 
-# while valid_samples < NUM_SAMPLES:
-#     if not all_files:
-#         print("No more files to load!")
-#         break
+while valid_samples < NUM_SAMPLES:
+    if not all_files:
+        print("No more files to load!")
+        break
 
-#     file_path = all_files.pop()
-#     try:
-#         mapArray, start, goal = loadPTSample(file_path)
-#     except Exception as e:
-#         print(f"[Error] Failed to load file: {file_path} - {str(e)}")
-#         continue
+    file_path = all_files.pop()
+    try:
+        mapArray, start, goal = loadPTSample(file_path)
+    except Exception as e:
+        print(f"[Error] Failed to load file: {file_path} - {str(e)}")
+        continue
 
-#     filename = os.path.splitext(os.path.basename(file_path))[0]
+    filename = os.path.splitext(os.path.basename(file_path))[0]
 
-#     if not (isValid(start, mapArray) and isValid(goal, mapArray)):
-#         print(f"[Warning] Start or goal is in obstacle: {filename}")
-#         fig = plotMapWithPath(mapArray, start, goal, path=None)
-#         plt.show()
-#         plt.close(fig)
-#         continue  # 跳过并自动roll下一张
+    if not (isValid(start, mapArray) and isValid(goal, mapArray)):
+        print(f"[Warning] Start or goal is in obstacle: {filename}")
+        fig = plotMapWithPath(mapArray, start, goal, path=None)
+        plt.show()
+        plt.close(fig)
+        continue  # Skip and automatically roll to the next map
 
-#     tile_map, start_crop, goal_crop = crop_map_around_start_goal(mapArray, start, goal, margin=MARGIN)
+    tile_map, start_crop, goal_crop = crop_map_around_start_goal(mapArray, start, goal, margin=MARGIN)
 
-#     planner = QLearningPlanner(tile_map, episodes=EPISODES, maxSteps=MAX_STEPS)
-#     planner.train(start_crop, goal_crop)
-#     path = planner.extractPath(start_crop, goal_crop)
+    planner = QLearningPlanner(tile_map, episodes=EPISODES, maxSteps=MAX_STEPS)
+    planner.train(start_crop, goal_crop)
+    path = planner.extractPath(start_crop, goal_crop)
 
-#     # Path Planning Result
-#     if path:
-#         print(f"[Info] Path found. Length: {len(path)}")
-#     else:
-#         print(f"[Info] No path found.")
+    # Path Planning Result
+    if path:
+        print(f"[Info] Path found. Length: {len(path)}")
+    else:
+        print(f"[Info] No path found.")
 
-#     # Save visualizations
-#     id_str = f"{plot_id:03d}"
-#     fig1 = plotMapWithPath(tile_map, start_crop, goal_crop, path)
-#     fig1.savefig(os.path.join(SAVE_FOLDER, f"{id_str}_path.png"))
-#     plt.close(fig1)
+    # Save visualizations
+    id_str = f"{plot_id:03d}"
+    fig1 = plotMapWithPath(tile_map, start_crop, goal_crop, path)
+    fig1.savefig(os.path.join(SAVE_FOLDER, f"{id_str}_path.png"))
+    plt.close(fig1)
 
-#     fig2 = plot_q_value_heatmap(planner.q_table, tile_map, title="Q-table Heatmap")
-#     fig2.savefig(os.path.join(SAVE_FOLDER, f"{id_str}_heatmap.png"))
-#     plt.close(fig2)
+    fig2 = plot_q_value_heatmap(planner.q_table, tile_map, title="Q-table Heatmap")
+    fig2.savefig(os.path.join(SAVE_FOLDER, f"{id_str}_heatmap.png"))
+    plt.close(fig2)
 
-#     plt.plot(planner.reward_history)
-#     plt.xlabel("Episode")
-#     plt.ylabel("Total Reward")
-#     plt.title(f"Reward over Episodes: {filename}")
-#     plt.grid(True)
-#     plt.savefig(os.path.join(SAVE_FOLDER, f"{id_str}_reward.png"))
-#     plt.close()
+    plt.plot(planner.reward_history)
+    plt.xlabel("Episode")
+    plt.ylabel("Total Reward")
+    plt.title(f"Reward over Episodes: {filename}")
+    plt.grid(True)
+    plt.savefig(os.path.join(SAVE_FOLDER, f"{id_str}_reward.png"))
+    plt.close()
 
-#     if path:
-#         save_path_animation(tile_map, start_crop, goal_crop, path, save_path=os.path.join(SAVE_FOLDER, f"{id_str}_path.gif"))
+    if path:
+        save_path_animation(tile_map, start_crop, goal_crop, path, save_path=os.path.join(SAVE_FOLDER, f"{id_str}_path.gif"))
 
-#     plot_id += 1
-#     valid_samples += 1
+    plot_id += 1
+    valid_samples += 1
 
 # === K-Fold Evaluation ===
-# evaluate_with_kfold(original_file_list, k=K_Fold)
+evaluate_with_kfold(original_file_list, k=K_Fold)
 
 # === Path Comparison Evaluation ===
 print("\nRunning Q-Learning vs A* Comparison...")
